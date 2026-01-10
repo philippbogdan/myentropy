@@ -249,3 +249,54 @@ def compute_focus_from_csv(
     )
     categories = load_schedule_categories(rows, activity_map)
     return compute_focus_from_categories(categories)
+
+
+def compute_focus_from_calendar(
+    date=None,
+    activity_map=None,
+    classifier=None,
+    cache=None,
+    goals_context=None,
+    credentials_path=None,
+    token_path=None,
+    calendar_ids=None,
+):
+    """Compute focus score from Google Calendar events.
+
+    Args:
+        date: datetime.date object (defaults to today)
+        activity_map: Manual activity->category mapping (defaults to built-in)
+        classifier: GrokClassifier instance for unknown activities
+        cache: Dict to cache LLM classifications
+        goals_context: Goals context for LLM classifier
+        credentials_path: Path to OAuth credentials JSON
+        token_path: Path to store/load token
+        calendar_ids: List of calendar IDs (defaults to all non-excluded calendars)
+
+    Returns:
+        Dict with focus, penalty, switches, and schedule
+    """
+    from calendar_loader import load_calendar_schedule
+
+    validate_weights()
+    activity_map = activity_map or build_activity_map()
+
+    rows = load_calendar_schedule(
+        date=date,
+        credentials_path=credentials_path,
+        token_path=token_path,
+        calendar_ids=calendar_ids,
+        fill_gaps_label="unscheduled",
+    )
+
+    activity_map = build_resolved_activity_map(
+        rows,
+        activity_map,
+        classifier=classifier,
+        cache=cache,
+        goals_context=goals_context,
+    )
+    categories = load_schedule_categories(rows, activity_map)
+    result = compute_focus_from_categories(categories)
+    result["schedule"] = rows
+    return result

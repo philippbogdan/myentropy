@@ -1,1 +1,6 @@
 env
+__pycache__/
+credentials.json
+credentials-web.json
+token.json
+.venv/
