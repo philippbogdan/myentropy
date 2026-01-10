@@ -1,7 +1,9 @@
 """Flask web app for focus score display."""
 
 import datetime
+import json
 import os
+import pathlib
 import secrets
 
 from flask import Flask, redirect, request, session, url_for, render_template
@@ -18,23 +20,43 @@ from focus import (
     build_classifier,
 )
 
-import pathlib
-
 APP_DIR = pathlib.Path(__file__).parent.resolve()
 
 app = Flask(__name__, template_folder=APP_DIR / "templates")
-app.secret_key = secrets.token_hex(32)
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 CLIENT_SECRETS_FILE = APP_DIR / "credentials-web.json"
 
-os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+# Allow HTTP for local development only
+if os.environ.get("FLASK_ENV") != "production":
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+
+def get_client_config():
+    """Get OAuth client config from env vars or file."""
+    client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+    if client_id and client_secret:
+        return {
+            "web": {
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        }
+
+    with open(CLIENT_SECRETS_FILE) as f:
+        return json.load(f)
 
 
 def get_flow(redirect_uri):
     """Create OAuth flow for web app."""
-    return Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+    client_config = get_client_config()
+    return Flow.from_client_config(
+        client_config,
         scopes=SCOPES,
         redirect_uri=redirect_uri,
     )
