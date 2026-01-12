@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23000' width='180' height='180'/><text x='90' y='115' text-anchor='middle' fill='%23fff' font-size='80' font-family='system-ui'>f?</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23000' width='32' height='32'/><text x='16' y='22' text-anchor='middle' fill='%23fff' font-size='16' font-family='system-ui'>f?</text></svg>">
+    <title>{{ date.strftime('%B %d') }} - focus?</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            background: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+            padding: 1rem;
+            padding-top: env(safe-area-inset-top, 1rem);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .back-btn {
+            background: #1c1c1e;
+            border: none;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .back-btn:active {
+            background: #2c2c2e;
+        }
+
+        .date-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .score-badge {
+            margin-left: auto;
+            padding: 0.4rem 0.8rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .score-badge.score-high { background: #34c759; color: #000; }
+        .score-badge.score-mid { background: #ff9500; color: #000; }
+        .score-badge.score-low { background: #ff3b30; color: #fff; }
+
+        .timeline {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .activity {
+            display: flex;
+            align-items: stretch;
+            overflow: hidden;
+        }
+
+        .activity-time {
+            width: 50px;
+            padding: 0.25rem;
+            font-size: 0.65rem;
+            color: #8e8e93;
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .activity-bar {
+            flex: 1;
+            display: flex;
+            align-items: stretch;
+            margin: 1px 0;
+        }
+
+        .activity-name {
+            flex: 1;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            background: #1c1c1e;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .activity-category {
+            width: 6px;
+            flex-shrink: 0;
+        }
+
+        .category-core { background: #34c759; }
+        .category-self-care { background: #007aff; }
+        .category-peripheral { background: #ff9500; }
+        .category-waste { background: #ff3b30; }
+
+        .debug {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            color: #ff3b30;
+            font-size: 0.75rem;
+            font-family: monospace;
+            z-index: 10;
+        }
+
+        .legend {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.65rem;
+            color: #8e8e93;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug">LLM: {{ llm_calls }}</div>
+    <div class="container">
+        <div class="header">
+            <a href="/?year={{ date.year }}&month={{ date.month }}" class="back-btn">&lt;</a>
+            <span class="date-title">{{ date.strftime('%b %d, %Y') }}</span>
+            {% if score is not none %}
+                <span class="score-badge {% if score > 500 %}score-high{% elif score > 200 %}score-mid{% else %}score-low{% endif %}">
+                    {% if score > 9999 %}MAX{% else %}{{ score | int }}{% endif %}
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="timeline">
+            {% for item in schedule %}
+                <div class="activity" style="flex: {{ item.duration }};">
+                    <div class="activity-time">{{ item.start }}</div>
+                    <div class="activity-bar">
+                        <div class="activity-name">{{ item.activity }}</div>
+                        <div class="activity-category category-{{ item.category }}"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color category-core"></div>
+                <span>core</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color category-self-care"></div>
+                <span>self-care</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color category-peripheral"></div>
+                <span>peripheral</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color category-waste"></div>
+                <span>waste</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

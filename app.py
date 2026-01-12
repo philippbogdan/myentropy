@@ -244,6 +244,80 @@ def index():
     )
 
 
+@app.route("/day/<date_str>")
+def day_detail(date_str):
+    """Show detailed schedule for a specific day."""
+    if "credentials" not in session:
+        return redirect(url_for("index"))
+
+    service = get_calendar_service()
+    if not service:
+        return redirect(url_for("index"))
+
+    try:
+        date = datetime.date.fromisoformat(date_str)
+    except ValueError:
+        return redirect(url_for("index"))
+
+    today = datetime.date.today()
+    if date > today:
+        return redirect(url_for("index"))
+
+    # Load cached mappings
+    activity_map = build_activity_map()
+    cached_mappings = session.get("activity_mappings", {})
+    activity_map.update(cached_mappings)
+
+    classifier = build_classifier()
+    classifier.call_count = 0
+    goals_context = session.get("goals_context", "Be productive and focused")
+
+    # Fetch events for this day
+    try:
+        events = fetch_events(service, date, "primary")
+        rows = events_to_schedule_rows(events)
+        rows = fill_gaps(rows, "unscheduled")
+    except Exception as e:
+        print(f"Error fetching events for {date}: {e}")
+        rows = []
+
+    # Classify any unknown activities
+    unknown = [activity for _, _, activity in rows if activity not in activity_map]
+    if unknown and classifier:
+        classified = classifier.classify_many(unknown, goals_context)
+        activity_map.update(classified)
+        cached_mappings.update(classified)
+        session["activity_mappings"] = cached_mappings
+
+    # Build schedule with categories and duration
+    schedule = []
+    for start, end, activity in rows:
+        start_h, start_m = divmod(start, 60)
+        end_h, end_m = divmod(end, 60)
+        category = activity_map.get(activity, "peripheral")
+        duration = end - start  # Duration in minutes
+        schedule.append({
+            "start": f"{start_h:02d}:{start_m:02d}",
+            "end": f"{end_h:02d}:{end_m:02d}",
+            "activity": activity,
+            "category": category,
+            "duration": duration,
+        })
+
+    # Get score from cache
+    cached_scores = session.get("cached_scores", {})
+    score = cached_scores.get(date_str)
+
+    return render_template(
+        "day.html",
+        date=date,
+        date_str=date_str,
+        schedule=schedule,
+        score=score,
+        llm_calls=classifier.call_count,
+    )
+
+
 @app.route("/auth")
 def auth():
     """Start OAuth flow."""

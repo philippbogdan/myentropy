@@ -104,6 +104,12 @@
             border-radius: 0;
             font-size: 0.9rem;
             position: relative;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        a.day:active {
+            opacity: 0.7;
         }
 
         .day.other-month {
@@ -119,6 +125,7 @@
         .day.today {
             background: #fff;
             color: #000;
+            z-index: 5;
         }
 
         .day .date-num {
@@ -240,21 +247,24 @@
                 {% for week in weeks %}
                     <div class="week">
                         {% for day in week %}
+                            {% if day.score is not none and day.is_current_month %}
+                            <a href="/day/{{ day.date }}" class="day
+                                {% if day.is_today %}today{% endif %}
+                                {% if day.score > 500 %}score-high{% elif day.score > 200 %}score-mid{% else %}score-low{% endif %}
+                            ">
+                                <span class="date-num">{{ day.day }}</span>
+                                <span class="score">
+                                    {% if day.score > 9999 %}MAX{% else %}{{ day.score | int }}{% endif %}
+                                </span>
+                            </a>
+                            {% else %}
                             <div class="day
                                 {% if not day.is_current_month %}other-month{% endif %}
                                 {% if day.is_future and day.is_current_month %}future{% endif %}
-                                {% if day.is_today %}today{% endif %}
-                                {% if day.score is not none %}
-                                    {% if day.score > 500 %}score-high{% elif day.score > 200 %}score-mid{% else %}score-low{% endif %}
-                                {% endif %}
                             ">
                                 <span class="date-num">{{ day.day }}</span>
-                                {% if day.score is not none and day.is_current_month %}
-                                    <span class="score">
-                                        {% if day.score > 9999 %}MAX{% else %}{{ day.score | int }}{% endif %}
-                                    </span>
-                                {% endif %}
                             </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 {% endfor %}
