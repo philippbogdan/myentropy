@@ -22,11 +22,15 @@
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
             padding: 1rem;
             padding-top: env(safe-area-inset-top, 1rem);
+            display: flex;
+            flex-direction: column;
         }
 
         .container {
-            max-width: 400px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 500px;
+            margin: auto;
+            padding: 0 0.5rem;
         }
 
         /* Header with month nav */
@@ -188,29 +192,31 @@
 
         /* Logout link */
         .logout {
-            position: absolute;
+            position: fixed;
             top: 1rem;
             right: 1rem;
             color: #8e8e93;
             text-decoration: none;
             font-size: 0.85rem;
+            z-index: 10;
         }
 
         /* Debug info */
         .debug {
-            position: absolute;
+            position: fixed;
             top: 1rem;
             left: 1rem;
             color: #ff3b30;
             font-size: 0.75rem;
             font-family: monospace;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
     {% if authenticated %}
-        <a href="/logout" class="logout">logout</a>
         <div class="debug">LLM: {{ llm_calls }} | Days: {{ days_computed }}</div>
+        <a href="/logout" class="logout">logout</a>
         <div class="container">
             <div class="header">
                 <span class="month-name">{{ month_name }}</span>
