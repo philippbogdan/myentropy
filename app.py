@@ -1,7 +1,6 @@
 """Flask web app for focus score display."""
 
 import datetime
-import json
 import os
 import pathlib
 import secrets
@@ -22,11 +21,20 @@ from focus import (
 
 APP_DIR = pathlib.Path(__file__).parent.resolve()
 
+# Load .env file for local development
+env_path = APP_DIR / ".env"
+if env_path.exists():
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                os.environ.setdefault(key.strip(), value.strip())
+
 app = Flask(__name__, template_folder=APP_DIR / "templates")
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-CLIENT_SECRETS_FILE = APP_DIR / "credentials-web.json"
 
 # Allow HTTP for local development only
 if os.environ.get("FLASK_ENV") != "production":
@@ -34,22 +42,21 @@ if os.environ.get("FLASK_ENV") != "production":
 
 
 def get_client_config():
-    """Get OAuth client config from env vars or file."""
+    """Get OAuth client config from environment variables."""
     client_id = os.environ.get("GOOGLE_CLIENT_ID")
     client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
 
-    if client_id and client_secret:
-        return {
-            "web": {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-            }
-        }
+    if not client_id or not client_secret:
+        raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in .env")
 
-    with open(CLIENT_SECRETS_FILE) as f:
-        return json.load(f)
+    return {
+        "web": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
+    }
 
 
 def get_flow(redirect_uri):

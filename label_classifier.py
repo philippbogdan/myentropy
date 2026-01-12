@@ -281,7 +281,7 @@ def save_cache(path, cache):
         json.dump(cache, f, indent=2, sort_keys=True)
 
 
-def load_api_key(path="env", env_var="XAI_API_KEY"):
+def load_api_key(path=".env", env_var="XAI_API_KEY"):
     env_value = os.environ.get(env_var)
     if env_value:
         return env_value.strip()
