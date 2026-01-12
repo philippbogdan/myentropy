@@ -178,10 +178,15 @@ class GrokClassifier:
             raise ValueError(f"LLM returned invalid category '{content}'")
         return token
 
-    def classify_many(self, activities, goals_context=None):
+    def classify_many(self, activities, goals_context=None, retry_count=0):
         activities_list = list(activities)
         if not activities_list:
             return {}
+
+        # Track call count if attribute exists
+        if hasattr(self, 'call_count'):
+            self.call_count += 1
+
         goals_text = format_goals_context(goals_context)
         payload = {
             "model": self.model,
@@ -224,17 +229,32 @@ class GrokClassifier:
         parsed = parse_json_object(content)
         if not isinstance(parsed, dict):
             raise ValueError(f"LLM returned non-object JSON: {content}")
-        missing = [item for item in activities_list if item not in parsed]
-        if missing:
-            raise ValueError(f"LLM response missing items: {missing}")
 
         mapping = {}
+        missing = []
         for item in activities_list:
-            value = parsed[item]
-            token = str(value).strip().lower()
-            if token not in CATEGORIES:
-                raise ValueError(f"LLM returned invalid category '{value}' for '{item}'")
-            mapping[item] = token
+            if item in parsed:
+                value = parsed[item]
+                token = str(value).strip().lower()
+                if token in CATEGORIES:
+                    mapping[item] = token
+                else:
+                    missing.append(item)
+            else:
+                missing.append(item)
+
+        # Retry missing items (up to 2 retries)
+        if missing and retry_count < 2:
+            print(f"Retrying {len(missing)} missing items: {missing}")
+            retry_results = self.classify_many(missing, goals_context, retry_count + 1)
+            mapping.update(retry_results)
+
+        # Final fallback for anything still missing
+        for item in activities_list:
+            if item not in mapping:
+                print(f"Warning: Giving up on '{item}', defaulting to peripheral")
+                mapping[item] = "peripheral"
+
         return mapping
 
 

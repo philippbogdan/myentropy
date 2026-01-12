@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23000' width='180' height='180'/><text x='90' y='115' text-anchor='middle' fill='%23fff' font-size='80' font-family='system-ui'>f?</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%23000' width='32' height='32'/><text x='16' y='22' text-anchor='middle' fill='%23fff' font-size='16' font-family='system-ui'>f?</text></svg>">
     <title>focus?</title>
     <style>
         * {
@@ -13,70 +17,164 @@
 
         body {
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            font-family: system-ui, -apple-system, sans-serif;
+            background: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+            padding: 1rem;
+            padding-top: env(safe-area-inset-top, 1rem);
         }
 
         .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
+            max-width: 400px;
+            margin: 0 auto;
         }
 
-        .week {
+        /* Header with month nav */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 0 0.25rem;
+        }
+
+        .month-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
             display: flex;
             gap: 1rem;
         }
 
+        .nav-btn {
+            background: #1c1c1e;
+            border: none;
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:active {
+            background: #2c2c2e;
+        }
+
+        /* Weekday header */
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 0.75rem;
+            color: #8e8e93;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Calendar grid */
+        .calendar {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
         .day {
-            width: 80px;
-            height: 80px;
-            background: black;
+            aspect-ratio: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
+            background: #1c1c1e;
+            border-radius: 0;
+            font-size: 0.9rem;
             position: relative;
         }
 
+        .day.other-month {
+            background: transparent;
+            color: #3a3a3c;
+        }
+
         .day.future {
-            background: #e0e0e0;
-            color: #999;
+            background: #1c1c1e;
+            color: #3a3a3c;
         }
 
         .day.today {
-            outline: 3px solid black;
-            outline-offset: 3px;
+            background: #fff;
+            color: #000;
         }
 
-        .day .weekday {
-            font-size: 0.7rem;
-            font-weight: normal;
-            position: absolute;
-            bottom: 6px;
-            opacity: 0.7;
+        .day .date-num {
+            font-weight: 600;
+            font-size: 1rem;
         }
 
         .day .score {
-            font-size: 1.2rem;
+            font-size: 0.65rem;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        .day.today .score {
+            color: #000;
+        }
+
+        /* Score color coding */
+        .day.score-high {
+            background: #34c759;
+            color: #000;
+        }
+        .day.score-mid {
+            background: #ff9500;
+            color: #000;
+        }
+        .day.score-low {
+            background: #ff3b30;
+            color: #fff;
+        }
+
+        .day.today.score-high,
+        .day.today.score-mid,
+        .day.today.score-low {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
+
+        /* Login button */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            margin: -1rem;
+            padding: 1rem;
         }
 
         .focus-button {
-            width: 120px;
-            height: 120px;
-            background: black;
-            color: white;
+            width: 140px;
+            height: 140px;
+            background: #000;
+            color: #fff;
             border: none;
             cursor: pointer;
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-family: inherit;
+            font-weight: 500;
+            border-radius: 0;
             transition: transform 0.1s;
         }
 
@@ -88,45 +186,80 @@
             transform: scale(0.95);
         }
 
+        /* Logout link */
         .logout {
-            position: fixed;
+            position: absolute;
             top: 1rem;
             right: 1rem;
-            color: #999;
+            color: #8e8e93;
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
-        .logout:hover {
-            color: black;
+        /* Debug info */
+        .debug {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: #ff3b30;
+            font-size: 0.75rem;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        {% if authenticated %}
-            <a href="/logout" class="logout">logout</a>
-            <div class="week">
-                {% for day in days %}
-                    <div class="day {% if day.is_future %}future{% endif %} {% if day.is_today %}today{% endif %}">
-                        {% if day.score is not none %}
-                            {% if day.score > 9999 %}
-                                <span class="score">MAX</span>
-                            {% else %}
-                                <span class="score">{{ day.score | int }}</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="score">-</span>
-                        {% endif %}
-                        <span class="weekday">{{ day.weekday }}</span>
+    {% if authenticated %}
+        <a href="/logout" class="logout">logout</a>
+        <div class="debug">LLM: {{ llm_calls }} | Days: {{ days_computed }}</div>
+        <div class="container">
+            <div class="header">
+                <span class="month-name">{{ month_name }}</span>
+                <div class="nav-buttons">
+                    <a href="/?year={{ prev_month.year }}&month={{ prev_month.month }}" class="nav-btn">&lt;</a>
+                    <a href="/?year={{ next_month.year }}&month={{ next_month.month }}" class="nav-btn">&gt;</a>
+                </div>
+            </div>
+
+            <div class="weekdays">
+                <span>M</span>
+                <span>T</span>
+                <span>W</span>
+                <span>T</span>
+                <span>F</span>
+                <span>S</span>
+                <span>S</span>
+            </div>
+
+            <div class="calendar">
+                {% for week in weeks %}
+                    <div class="week">
+                        {% for day in week %}
+                            <div class="day
+                                {% if not day.is_current_month %}other-month{% endif %}
+                                {% if day.is_future and day.is_current_month %}future{% endif %}
+                                {% if day.is_today %}today{% endif %}
+                                {% if day.score is not none %}
+                                    {% if day.score > 500 %}score-high{% elif day.score > 200 %}score-mid{% else %}score-low{% endif %}
+                                {% endif %}
+                            ">
+                                <span class="date-num">{{ day.day }}</span>
+                                {% if day.score is not none and day.is_current_month %}
+                                    <span class="score">
+                                        {% if day.score > 9999 %}MAX{% else %}{{ day.score | int }}{% endif %}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
                     </div>
                 {% endfor %}
             </div>
-        {% else %}
+        </div>
+    {% else %}
+        <div class="login-container">
             <button class="focus-button" onclick="window.location.href='/auth'">
                 focus?
             </button>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </body>
 </html>
